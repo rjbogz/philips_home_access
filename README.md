@@ -88,16 +88,7 @@ For each lock:
 
 ---
 
-## Debug Logging
-
-Add to `configuration.yaml`:
-
-```yaml
-logger:
-  logs:
-    custom_components.philips_home_access: debug
-
-## Support```
+## Support
 
 If this integration helped you, consider supporting development:
 
