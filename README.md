@@ -97,7 +97,7 @@ logger:
   logs:
     custom_components.philips_home_access: debug
 
-## Support
+## Support```
 
 If this integration helped you, consider supporting development:
 
