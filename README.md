@@ -24,7 +24,8 @@ Other Philips locks using a direct wifi connection may also work. Let me know if
 ## Notes
 
 - You can not be logged in to the Philips Home Access app and this integration at the same time. Logging in to one will sign you out of the other.
-- I have only added basic sensors for this, but I'm open to adding more support (getting other data about the lock, adjusting settings, etc.)
+- You need to have a regular account in the Philips Home Access app, not one of the OAuth options (Google)
+- I have only added basic sensors for this, but I'm open to adding more support (getting other data about the lock, adjusting settings, etc.).
 - This integration is a work in progress. I only have 1 lock so my testing was limited.
 
 ## Installation
