@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Philips Home Access Authentication",
+        "data": {
+          "username": "Email/Username",
+          "password": "Password",
+          "region": "Region"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Username or password does not match.",
+      "account_not_find": "Account does not exist.",
+      "cannot_connect": "Failed to connect to Philips servers.",
+      "unknown": "Unexpected error occurred."
+    },
+    "issues": {
+      "reauth_required": {
+        "title": "Philips Home Access authentication required",
+        "description": "{name} is no longer logged in (code 444). Open the integration and re-authenticate. If your password changed, enter the new one."
+      }
+    },
+    "config": {
+      "abort": {
+        "reauth_successful": "Re-authentication successful."
+      }
+    }
+  }
+}
