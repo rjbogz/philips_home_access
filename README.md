@@ -17,7 +17,7 @@ This integration allows you to monitor and control Philips Home Access locks dir
 
 So far, I have only tested with:
 
-- Philips Home Access WiFi Locks
+- DDL242X-1HW (4200 Series)
 
 Other Philips locks using a direct wifi connection may also work. Let me know if your lock works or help me add support it.
 
