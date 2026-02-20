@@ -10,7 +10,7 @@ from homeassistant.helpers.issue_registry import IssueSeverity
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-PLATFORMS = ["lock", "sensor"]
+PLATFORMS = ["lock", "sensor", "switch", "number"]
 ISSUE_AUTH = "auth_invalid"
 
 def _issue_id(entry_id: str) -> str:
@@ -30,6 +30,15 @@ def create_auth_issue(hass, entry):
 
 def clear_auth_issue(hass, entry):
     ir.async_delete_issue(hass, DOMAIN, _issue_id(entry.entry_id))
+    
+    # 2. Dismiss the persistent notification popup
+    hass.async_create_task(
+        hass.services.async_call(
+            "persistent_notification",
+            "dismiss",
+            {"notification_id": f"{DOMAIN}_{entry.entry_id}_auth"},
+        )
+    )
 
 async def async_setup(hass, config):
     hass.data.setdefault(DOMAIN, {})

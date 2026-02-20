@@ -3,6 +3,8 @@ import time
 import requests
 import base64
 import binascii
+import logging
+_LOGGER = logging.getLogger(__name__)
 
 from .const import RSA_HEX_KEY, RSA_PRIVATE_SIGN
 
@@ -95,6 +97,60 @@ class PhilipsHomeAccessAPI:
         if isinstance(out, dict):
             out["_http_status"] = resp.status_code
         return out
+    
+    def _get_headers(self):
+        return {
+            "token": self.token,
+            "k-tenant": "philips",
+            "k-version": "4.11.0",
+            "k-language": "en_US",
+            "k-signv": "1.0.0",
+            "content-type": "application/json",
+            "content-length": "249",
+            "accept-encoding": "gzip"
+        }
+
+    def _sign(self, payload):
+        from Crypto.PublicKey import RSA
+        from Crypto.Hash import SHA256
+        from Crypto.Signature import pkcs1_15
+        key = RSA.import_key(RSA_PRIVATE_SIGN)
+        canonical_str = json.dumps(payload, separators=(",", ":"), sort_keys=True)
+        h = SHA256.new(canonical_str.encode())
+        return base64.b64encode(pkcs1_15.new(key).sign(h)).decode()
+
+    def set_auto_lock_mode(self, esn, enabled):
+        url = "https://api.idlespacetech.com/v3/api/device/set-am-mode"
+        mode = 0 if enabled else 1
+        
+        payload = {
+            "esn": esn,
+            "amMode": mode,
+            "reqTime": str(int(time.time() * 1000))
+        }
+        payload["sign"] = self._sign(payload)
+        headers = self._get_headers()
+        return requests.post(url, headers=headers, json=payload, timeout=10).json()
+
+    def set_auto_lock_time(self, esn, seconds):
+        url = "https://api.idlespacetech.com/v3/api/device/set-auto-lock-time"
+        
+        payload = {
+            "esn": esn,
+            "reqTime": str(int(time.time() * 1000)),
+            "autoLockTime": int(seconds),
+        }
+        payload["sign"] = self._sign(payload)
+        final_body = {
+            "esn": esn,
+            "sign": payload["sign"],
+            "reqTime": payload["reqTime"],
+            "autoLockTime": int(seconds)
+        }
+        headers = self._get_headers()
+        resp = requests.post(url, headers=self._get_headers(), json=final_body, timeout=10)
+        return resp.json()
+        #return requests.post(url, headers=headers, json=payload, timeout=10).json()
 
     def set_lock_state(self, esn, lock_it):
         from Crypto.PublicKey import RSA

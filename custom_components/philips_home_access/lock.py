@@ -37,11 +37,6 @@ class PhilipsHomeAccessLock(LockEntity):
     async def async_lock(self, **kwargs):
         self._skip_poll_until = datetime.utcnow() + timedelta(seconds=30)
         resp = await self.hass.async_add_executor_job(self._api.set_lock_state, self._esn, True)
-        _LOGGER.warning(
-            "Lock API response (%s): %s",
-            "lock" if True else "unlock",
-            resp
-        )
 
         if isinstance(resp, dict) and resp.get("code") == 200:
             self._attr_is_locked = True
@@ -50,11 +45,6 @@ class PhilipsHomeAccessLock(LockEntity):
     async def async_unlock(self, **kwargs):
         self._skip_poll_until = datetime.utcnow() + timedelta(seconds=30)
         resp = await self.hass.async_add_executor_job(self._api.set_lock_state, self._esn, False)
-        _LOGGER.warning(
-            "Lock API response (%s): %s",
-            "lock" if True else "unlock",
-            resp
-        )
 
         if isinstance(resp, dict) and resp.get("code") == 200:
             self._attr_is_locked = False
