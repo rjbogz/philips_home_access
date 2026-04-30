@@ -1,9 +1,0 @@
-{
-  "domain": "philips_home_access",
-  "name": "Philips Home Access",
-  "config_flow": true,
-  "documentation": "https://github.com/rjbogz/philips_home_access",
-  "requirements": ["pycryptodome==3.20.0"],
-  "version": "1.1.1",
-  "iot_class": "cloud_polling"
-}

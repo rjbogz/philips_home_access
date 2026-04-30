@@ -290,6 +290,49 @@ class PhilipsHomeAccessAPI:
         )
         return out
 
+    def set_gateway_power_status(self, esn, enabled):
+        url = "https://api.idlespacetech.com/v3/gateway/set-gateway-power"
+        status = 1 if enabled else 0
+        payload = {
+            "powerStatus": status,
+            "esn": esn,
+            "reqTime": str(int(time.time())),
+        }
+        payload["sign"] = self._sign(payload)
+
+        headers = {
+            "token": self.token,
+            "k-tenant": "philips",
+            "k-version": "4.13.1",
+            "k-language": "en_US",
+            "k-signv": "1.0.0",
+            "Content-Type": "application/json",
+        }
+
+        _LOGGER.debug("set_gateway_power_status start: esn=%s enabled=%s powerStatus=%s", self._mask(esn), enabled, status)
+
+        resp = requests.post(url, headers=headers, json=payload, timeout=10)
+        try:
+            out = resp.json()
+        except Exception:
+            _LOGGER.debug("set_gateway_power_status returned non-JSON response: http_status=%s", resp.status_code)
+            return {
+                "code": resp.status_code,
+                "msg": "non_json_response",
+                "text": resp.text[:500],
+                "_http_status": resp.status_code,
+            }
+
+        if isinstance(out, dict):
+            out["_http_status"] = resp.status_code
+            _LOGGER.debug(
+                "set_gateway_power_status response: http_status=%s code=%s msg=%s",
+                resp.status_code,
+                out.get("code"),
+                out.get("msg"),
+            )
+        return out
+
     def set_lock_state(self, esn, lock_it):
         from Crypto.PublicKey import RSA
         from Crypto.Cipher import PKCS1_v1_5
