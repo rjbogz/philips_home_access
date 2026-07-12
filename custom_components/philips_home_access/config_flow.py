@@ -3,9 +3,16 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_USERNAME, CONF_PASSWORD
-from homeassistant.exceptions import ConfigEntryAuthFailed
 
-from .const import DOMAIN, REGIONS, CONF_REGION
+from .const import (
+    CONF_REGION,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL_MINUTES,
+    DOMAIN,
+    MAX_SCAN_INTERVAL_MINUTES,
+    MIN_SCAN_INTERVAL_MINUTES,
+    REGIONS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,20 +57,16 @@ class PhilipsHomeAccessConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     _LOGGER.exception("Reauth failed: %r", err)
                     errors["base"] = "unknown"
             else:
-                # Save new creds onto the existing entry
-                new_data = dict(entry.data)
-                new_data.update(
-                    {
+                # Complete the reauth flow through Home Assistant so it clears
+                # the auth-failed state before reloading the entry.
+                return self.async_update_reload_and_abort(
+                    entry,
+                    data_updates={
                         CONF_USERNAME: user_input[CONF_USERNAME],
                         CONF_PASSWORD: user_input[CONF_PASSWORD],
                         CONF_REGION: user_input[CONF_REGION],
-                    }
+                    },
                 )
-                self.hass.config_entries.async_update_entry(entry, data=new_data)
-
-                # reload the entry so it logs in with new creds
-                await self.hass.config_entries.async_reload(entry.entry_id)
-                return self.async_abort(reason="reauth_successful")
 
         # Prefill from existing entry
         return self.async_show_form(
@@ -130,4 +133,40 @@ class PhilipsHomeAccessConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
+        )
+
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        return PhilipsHomeAccessOptionsFlow(config_entry)
+
+
+class PhilipsHomeAccessOptionsFlow(config_entries.OptionsFlow):
+    def __init__(self, config_entry):
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input=None):
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        current_interval = self.config_entry.options.get(
+            CONF_SCAN_INTERVAL,
+            self.config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES),
+        )
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SCAN_INTERVAL,
+                        default=current_interval,
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(
+                            min=MIN_SCAN_INTERVAL_MINUTES,
+                            max=MAX_SCAN_INTERVAL_MINUTES,
+                        ),
+                    )
+                }
+            ),
         )

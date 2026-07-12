@@ -19,14 +19,25 @@
         }
       }
     },
+    "abort": {
+      "reauth_successful": "Re-authentication successful."
+    },
     "error": {
       "invalid_auth": "Username or password does not match.",
       "account_not_find": "Account does not exist.",
       "cannot_connect": "Failed to connect to Philips servers.",
       "unknown": "Unexpected error occurred."
-    },
-    "abort": {
-      "reauth_successful": "Re-authentication successful."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Polling Settings",
+        "description": "Choose how often the integration polls the Philips API for updates.",
+        "data": {
+          "scan_interval": "Polling interval (minutes)"
+        }
+      }
     }
   },
   "issues": {

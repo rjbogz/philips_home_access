@@ -3,7 +3,6 @@ from datetime import timedelta
 
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.components.persistent_notification import async_create as persistent_notify
-from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.issue_registry import IssueSeverity
 
@@ -45,6 +44,10 @@ async def async_setup(hass, config):
     return True
 
 
+async def _async_reload_entry(hass, entry):
+    await hass.config_entries.async_reload(entry.entry_id)
+
+
 async def async_setup_entry(hass, entry):
     from .api import PhilipsHomeAccessAPI
     from homeassistant.exceptions import ConfigEntryAuthFailed
@@ -61,21 +64,20 @@ async def async_setup_entry(hass, entry):
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = api
 
-    if hass.data.get(DOMAIN, {}).get(f"{entry.entry_id}_auth_invalid"):
-        _LOGGER.debug("Entry %s marked auth_invalid before setup", entry.entry_id)
-        raise ConfigEntryAuthFailed("Philips Home Access needs re-authentication")
-
     try:
         await hass.async_add_executor_job(api.login)
         _LOGGER.debug("Initial login succeeded for entry %s", entry.entry_id)
     except Exception as err:
         _LOGGER.debug("Initial login failed for entry %s: %r", entry.entry_id, err)
+        hass.data[DOMAIN][f"{entry.entry_id}_auth_invalid"] = True
+        create_auth_issue(hass, entry)
         raise ConfigEntryAuthFailed(
             "Philips Home Access authentication failed. Please reconfigure."
         ) from err
 
     clear_auth_issue(hass, entry)
     hass.data[DOMAIN][f"{entry.entry_id}_auth_invalid"] = False
+    hass.data[DOMAIN][f"{entry.entry_id}_update_listener"] = entry.add_update_listener(_async_reload_entry)
 
     _LOGGER.debug("Forwarding entry %s to platforms: %s", entry.entry_id, PLATFORMS)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -118,6 +120,10 @@ async def async_unload_entry(hass, entry):
     if unsub:
         unsub()
 
+    unsub_update_listener = hass.data[DOMAIN].pop(f"{entry.entry_id}_update_listener", None)
+    if unsub_update_listener:
+        unsub_update_listener()
+
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id, None)
@@ -125,8 +131,6 @@ async def async_unload_entry(hass, entry):
 
 async def async_mark_entry_auth_failed(hass, entry):
     """Mark integration as needing re-authentication."""
-    from homeassistant.exceptions import ConfigEntryAuthFailed
-
     persistent_notify(
         hass,
         title="Philips Home Access requires login",

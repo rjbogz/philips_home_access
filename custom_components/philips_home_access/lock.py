@@ -1,8 +1,11 @@
 import logging
+from datetime import datetime, timedelta
+
 from homeassistant.components.lock import LockEntity
 from homeassistant.helpers.device_registry import DeviceInfo
+
+from .const import CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES
 from .const import DOMAIN
-from datetime import datetime, timedelta
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -11,13 +14,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
     devices = await hass.async_add_executor_job(api.get_devices)
 
     lock_devices = [device for device in devices if device.get("deviceType") == "LOCK"]
-    async_add_entities([PhilipsHomeAccessLock(api, device) for device in lock_devices], update_before_add=True)
+    async_add_entities([PhilipsHomeAccessLock(api, entry, device) for device in lock_devices], update_before_add=True)
 
 class PhilipsHomeAccessLock(LockEntity):
     _attr_should_poll = True
-    _attr_scan_interval = timedelta(minutes=1)
     _attr_icon = "mdi:lock-smart"
-    def __init__(self, api, device_data):
+    def __init__(self, api, entry, device_data):
         self._skip_poll_until = None
         self._api = api
         self._esn = device_data["wifiSN"]
@@ -42,6 +44,11 @@ class PhilipsHomeAccessLock(LockEntity):
             model=device_data.get("productModel", "Lock"),
             sw_version=device_data.get("lockSoftwareVersion"),
         )
+        interval_minutes = entry.options.get(
+            CONF_SCAN_INTERVAL,
+            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES),
+        )
+        self._attr_scan_interval = timedelta(minutes=interval_minutes)
 
     async def async_lock(self, **kwargs):
         _LOGGER.warning("lock: lock requested for esn=%s", self._esn)

@@ -27,6 +27,7 @@ Let me know if your lock works or help me add support it.
 - You can not be logged in to the Philips Home Access app and this integration at the same time. Logging in to one will sign you out of the other.
 - I have only added basic sensors for this, but I'm open to adding more support (getting other data about the lock, adjusting settings, etc.)
 - This integration is a work in progress. I only have 1 lock so my testing was limited.
+- The polling interval can be changed later from the integration's menu in Home Assistant.
 
 ## Installation
 
@@ -91,7 +92,7 @@ For each gateway:
 ## Known Limitations
 
 - Requires Philips cloud access
-- Polling interval: 60 seconds
+- Polling interval is configurable from 1 to 60 minutes
 - Internet connection required
 
 ---

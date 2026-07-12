@@ -4,7 +4,7 @@ import logging
 from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.const import PERCENTAGE, SIGNAL_STRENGTH_DECIBELS_MILLIWATT
 
-from .const import DOMAIN
+from .const import CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,10 +38,10 @@ async def async_setup_entry(hass, entry, async_add_entities):
         }
 
         if device_type == "LOCK":
-            entities.append(PhilipsBatterySensor(api, esn, name, device_info))
-            entities.append(PhilipsSignalSensor(api, esn, name, device_info))
+            entities.append(PhilipsBatterySensor(api, entry, esn, name, device_info))
+            entities.append(PhilipsSignalSensor(api, entry, esn, name, device_info))
         elif device_type == "GATEWAY":
-            entities.append(PhilipsSignalSensor(api, esn, name, device_info))
+            entities.append(PhilipsSignalSensor(api, entry, esn, name, device_info))
 
     _LOGGER.debug("sensor: adding %d entities", len(entities))
     async_add_entities(entities, update_before_add=True)
@@ -49,13 +49,17 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
 class PhilipsBaseSensor(SensorEntity):
     _attr_should_poll = True
-    _attr_scan_interval = timedelta(minutes=1)
-    def __init__(self, api, esn: str, name: str, device_info: dict):
+    def __init__(self, api, entry, esn: str, name: str, device_info: dict):
         self._api = api
         self._esn = esn
         self._name = name
         self._attr_device_info = device_info
         self._attr_available = True
+        interval_minutes = entry.options.get(
+            CONF_SCAN_INTERVAL,
+            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES),
+        )
+        self._attr_scan_interval = timedelta(minutes=interval_minutes)
 
     async def async_update(self):
         try:
@@ -79,8 +83,8 @@ class PhilipsBatterySensor(PhilipsBaseSensor):
     _attr_native_unit_of_measurement = PERCENTAGE
     _attr_icon = "mdi:battery"
 
-    def __init__(self, api, esn: str, name: str, device_info: dict):
-        super().__init__(api, esn, name, device_info)
+    def __init__(self, api, entry, esn: str, name: str, device_info: dict):
+        super().__init__(api, entry, esn, name, device_info)
         self._attr_name = f"{name} Battery"
         self._attr_unique_id = f"philips_{esn}_battery"
 
@@ -93,8 +97,8 @@ class PhilipsSignalSensor(PhilipsBaseSensor):
     _attr_native_unit_of_measurement = SIGNAL_STRENGTH_DECIBELS_MILLIWATT
     _attr_icon = "mdi:wifi"
 
-    def __init__(self, api, esn: str, name: str, device_info: dict):
-        super().__init__(api, esn, name, device_info)
+    def __init__(self, api, entry, esn: str, name: str, device_info: dict):
+        super().__init__(api, entry, esn, name, device_info)
         self._attr_name = f"{name} WiFi Signal"
         self._attr_unique_id = f"philips_{esn}_rssi"
 

@@ -1,25 +1,29 @@
+from datetime import timedelta
+
 from homeassistant.components.number import NumberEntity
-from .const import DOMAIN
 import logging
 
 _LOGGER = logging.getLogger(__name__)
+
+from .const import CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES, DOMAIN
 
 async def async_setup_entry(hass, entry, async_add_entities):
     api = hass.data[DOMAIN][entry.entry_id]
     devices = await hass.async_add_executor_job(api.get_devices)
     _LOGGER.debug("number: setting up %s auto-lock delay entities", len(devices))
     lock_devices = [d for d in devices if d.get("deviceType") == "LOCK"]
-    async_add_entities([PhilipsAutoLockTime(api, d) for d in lock_devices])
+    async_add_entities([PhilipsAutoLockTime(api, entry, d) for d in lock_devices])
     hass.data[DOMAIN].setdefault("autolock_enabled", {})
     hass.data[DOMAIN]["autolock_enabled"].setdefault(entry.entry_id, {})
 
 class PhilipsAutoLockTime(NumberEntity):
+    _attr_should_poll = True
     _attr_native_min_value = 10
     _attr_native_max_value = 180
     _attr_native_step = 1
     _attr_native_unit_of_measurement = "s"
 
-    def __init__(self, api, device):
+    def __init__(self, api, entry, device):
         self._api = api
         self._esn = device["wifiSN"]
         self._attr_name = f"{device['lockNickname']} Auto-Lock Delay"
@@ -27,6 +31,11 @@ class PhilipsAutoLockTime(NumberEntity):
         self._attr_native_value = device.get("autoLockTime", 30)
         self._attr_available = (device.get("amMode") == 0)
         self._attr_device_info = {"identifiers": {(DOMAIN, self._esn)}}
+        interval_minutes = entry.options.get(
+            CONF_SCAN_INTERVAL,
+            entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL_MINUTES),
+        )
+        self._attr_scan_interval = timedelta(minutes=interval_minutes)
 
     @property
     def available(self) -> bool:
